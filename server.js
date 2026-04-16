@@ -6,13 +6,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Sample Data
+// DATA
 let students = [
     { id: 1, name: "Juan Dela Cruz", course: "BSIT", yearLevel: "1st Year", age: 19, status: "Regular" },
     { id: 2, name: "Maria Santos", course: "BSCS", yearLevel: "2nd Year", age: 20, status: "Irregular" }
 ];
 
-// ROOT TEST
+// ROOT
 app.get("/", (req, res) => {
     res.send("Student Records API is running");
 });
@@ -29,47 +29,39 @@ app.get("/api/students/:id", (req, res) => {
     res.json(student);
 });
 
-// ADD STUDENT
-async function addStudent() {
-    const student = {
-        name: document.getElementById("name").value,
-        course: document.getElementById("course").value,
-        yearLevel: document.getElementById("yearLevel").value,
-        age: document.getElementById("age").value,
-        status: document.getElementById("status").value
+// ADD STUDENT (FIXED)
+app.post("/api/students", (req, res) => {
+    const { name, course, yearLevel, age, status } = req.body;
+
+    if (!name || !course) {
+        return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const newStudent = {
+        id: students.length + 1,
+        name,
+        course,
+        yearLevel,
+        age,
+        status
     };
 
-    await fetch(`${API}/students`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(student)
-    });
+    students.push(newStudent);
 
-    loadStudents();
-}
+    res.status(201).json(newStudent);
+});
 
 // UPDATE STUDENT
-async function updateStudent(id) {
-    const student = {
-        name: document.getElementById("name").value,
-        course: document.getElementById("course").value,
-        yearLevel: document.getElementById("yearLevel").value,
-        age: document.getElementById("age").value,
-        status: document.getElementById("status").value
-    };
+app.put("/api/students/:id", (req, res) => {
+    const student = students.find(s => s.id == req.params.id);
 
-    await fetch(`${API}/students/${id}`, {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(student)
-    });
+    if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+    }
 
-    loadStudents();
-}
+    Object.assign(student, req.body);
+    res.json(student);
+});
 
 // DELETE STUDENT
 app.delete("/api/students/:id", (req, res) => {
@@ -98,24 +90,7 @@ app.get("/api/stats", (req, res) => {
     });
 });
 
-async function loadStudents() {
-    const res = await fetch(`${API}/students`);
-    const data = await res.json();
-
-    let output = "";
-    data.forEach(s => {
-        output += `
-      <li>
-        ${s.name} - ${s.course}
-        <button onclick="updateStudent(${s.id})">Edit</button>
-      </li>
-    `;
-    });
-
-    document.getElementById("list").innerHTML = output;
-}
-
-// PORT (IMPORTANT FOR RENDER)
+// PORT
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
