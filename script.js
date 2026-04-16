@@ -32,15 +32,14 @@ function updateStats(data){
 }
 
 function getForm(){
- return {
-  id: document.getElementById('studentId').value,
-  name: document.getElementById('name').value,
-  course: document.getElementById('course').value,
-  yearLevel: document.getElementById('yearLevel').value,
-  age: document.getElementById('age').value,
-  status: document.getElementById('status').value
- };
-}
+  return {
+   name: document.getElementById('name').value,
+   course: document.getElementById('course').value,
+   yearLevel: document.getElementById('yearLevel').value,
+   age: document.getElementById('age').value,
+   status: document.getElementById('status').value
+  };
+ }
 
 async function saveStudent(){
  const s = getForm();
@@ -70,7 +69,15 @@ function clearForm() {
   document.getElementById('status').value = 'Regular';
 }
 async function deleteStudent(id){ await fetch(`${API}/students/${id}`,{method:'DELETE'}); loadStudents(); }
-async function searchStudent(){ const q=search.value; const r=await fetch(`${API}/search?name=${q}`); const d=await r.json(); displayStudents(d); updateStats(d); }
+
+async function searchStudent(){
+  const q = document.getElementById('search').value;
+  const r = await fetch(`${API}/search?name=${q}`);
+  const d = await r.json();
+  displayStudents(d);
+  updateStats(d);
+ }
+ 
 async function loadRandom(){ const r=await fetch(`${API}/random`); const d=await r.json(); displayStudents([d]); updateStats([d]); }
 
 loadStudents();
