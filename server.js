@@ -1,123 +1,115 @@
 const express = require("express");
 const cors = require("cors");
+const { createClient } = require("@supabase/supabase-js");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// Sample Data
-let students = [
-    { id: 1, name: "Juan Dela Cruz", course: "BSIT", yearLevel: "1st Year", age: 19, status: "Regular" },
-    { id: 2, name: "Maria Santos", course: "BSCS", yearLevel: "2nd Year", age: 20, status: "Irregular" }
-];
+// Supabase Setup
+const supabaseUrl = "https://dxyhdmtgvkrzgmwsejkv.supabase.co";
+const supabaseKey = "sb_publishable_pNNLiIG50JZRwxUgEcE_uA_vxkkADyd";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-// ROOT TEST
+// ROOT
 app.get("/", (req, res) => {
-    res.send("Student Records API is running");
+  res.send("Student API with Supabase is running");
 });
 
-// GET ALL
-app.get("/api/students", (req, res) => {
-    res.json(students);
+
+app.get("/api/students", async (req, res) => {
+  const { data, error } = await supabase.from("students").select("*");
+
+  if (error) return res.status(500).json(error);
+
+  res.json(data);
 });
 
-// GET BY ID
-app.get("/api/students/:id", (req, res) => {
-    const student = students.find(s => s.id == req.params.id);
-    if (!student) return res.status(404).json({ message: "Student not found" });
-    res.json(student);
+
+app.get("/api/students/:id", async (req, res) => {
+  const { data, error } = await supabase
+    .from("students")
+    .select("*")
+    .eq("id", req.params.id)
+    .single();
+
+  if (error) return res.status(404).json({ message: "Not found" });
+
+  res.json(data);
 });
 
-// ADD STUDENT
-async function addStudent() {
-    const student = {
-        name: document.getElementById("name").value,
-        course: document.getElementById("course").value,
-        yearLevel: document.getElementById("yearLevel").value,
-        age: document.getElementById("age").value,
-        status: document.getElementById("status").value
-    };
 
-    await fetch(`${API}/students`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(student)
-    });
+app.post("/api/students", async (req, res) => {
+  const { name, course, yearLevel, age, status } = req.body;
 
-    loadStudents();
-}
+  const { data, error } = await supabase
+    .from("students")
+    .insert([{ name, course, yearLevel, age, status }])
+    .select();
 
-// UPDATE STUDENT
-async function updateStudent(id) {
-    const student = {
-        name: document.getElementById("name").value,
-        course: document.getElementById("course").value,
-        yearLevel: document.getElementById("yearLevel").value,
-        age: document.getElementById("age").value,
-        status: document.getElementById("status").value
-    };
+  if (error) return res.status(400).json(error);
 
-    await fetch(`${API}/students/${id}`, {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(student)
-    });
-
-    loadStudents();
-}
-
-// DELETE STUDENT
-app.delete("/api/students/:id", (req, res) => {
-    students = students.filter(s => s.id != req.params.id);
-    res.json({ message: "Deleted successfully" });
+  res.status(201).json(data);
 });
 
-// SEARCH
-app.get("/api/search", (req, res) => {
-    const q = (req.query.name || "").toLowerCase();
-    const result = students.filter(s => s.name.toLowerCase().includes(q));
-    res.json(result);
+
+app.put("/api/students/:id", async (req, res) => {
+  const { data, error } = await supabase
+    .from("students")
+    .update(req.body)
+    .eq("id", req.params.id)
+    .select();
+
+  if (error) return res.status(400).json(error);
+
+  res.json(data);
 });
 
-// RANDOM
-app.get("/api/random", (req, res) => {
-    const random = students[Math.floor(Math.random() * students.length)];
-    res.json(random);
+
+app.delete("/api/students/:id", async (req, res) => {
+  const { error } = await supabase
+    .from("students")
+    .delete()
+    .eq("id", req.params.id);
+
+  if (error) return res.status(400).json(error);
+
+  res.json({ message: "Deleted successfully" });
 });
 
-// STATS
-app.get("/api/stats", (req, res) => {
-    res.json({
-        total: students.length,
-        regular: students.filter(s => s.status === "Regular").length
-    });
+
+app.get("/api/search", async (req, res) => {
+  const q = req.query.name;
+
+  const { data, error } = await supabase
+    .from("students")
+    .select("*")
+    .ilike("name", `%${q}%`);
+
+  res.json(data);
 });
 
-async function loadStudents() {
-    const res = await fetch(`${API}/students`);
-    const data = await res.json();
 
-    let output = "";
-    data.forEach(s => {
-        output += `
-      <li>
-        ${s.name} - ${s.course}
-        <button onclick="updateStudent(${s.id})">Edit</button>
-      </li>
-    `;
-    });
+app.get("/api/random", async (req, res) => {
+  const { data } = await supabase.from("students").select("*");
 
-    document.getElementById("list").innerHTML = output;
-}
+  const random = data[Math.floor(Math.random() * data.length)];
+  res.json(random);
+});
 
-// PORT (IMPORTANT FOR RENDER)
+
+app.get("/api/stats", async (req, res) => {
+  const { data } = await supabase.from("students").select("*");
+
+  res.json({
+    total: data.length,
+    regular: data.filter(s => s.status === "Regular").length
+  });
+});
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on ${PORT}`);
 });
